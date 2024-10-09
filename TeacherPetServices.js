@@ -23,6 +23,15 @@ app.delete('/user/delete_user', (req, res) => {
     });
 });
 
+/*
+app.get('/mongodb', (req, res) => {
+    res.status(200).json({
+        const cursor = db.collection('inventory').find({})
+        message: "mongo success"
+    });
+});
+*/
+
 app.get('/user/get_user_by_ID', (req, res) => {
     res.status(200).json({
         message: 'Successfully called user/get_user_by_ID'
@@ -150,4 +159,6 @@ app.post('/GradeHelp/post_suggested_help', (req,res) =>{
 app.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}/`);
 });
+
+
 
