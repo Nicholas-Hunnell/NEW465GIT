@@ -99,6 +99,19 @@ app.get('/Gclass/get_user_profile', (req, res) => {
     });
 });
 
+app.get('/Gclass/get_assignment_grade', (req, res)=> {
+    res.status(200).json( {
+        message: 'Successfully called Gclass/get_assignment_grade'
+    });
+});
+
+app.get('/Gclass/get_all_courses', (req, res) => {
+    res.status(200).json({
+        message: 'Successfully called Gclass/get_all_courses'
+    });
+});
+
+
 ////////////////////////////////////////////////////////////    Awards   /////////////////////////////////////////////
 
 app.get('/Awards/get_Medal_Verification', (req, res) => {
