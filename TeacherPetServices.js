@@ -23,14 +23,6 @@ app.delete('/user/delete_user', (req, res) => {
     });
 });
 
-/*
-app.get('/mongodb', (req, res) => {
-    res.status(200).json({
-        const cursor = db.collection('inventory').find({})
-        message: "mongo success"
-    });
-});
-*/
 
 app.get('/user/get_user_by_ID', (req, res) => {
     res.status(200).json({
@@ -102,11 +94,25 @@ app.get('/Gclass/get_grades', (req, res) => {
     });
 });
 
+app.get('/Gclass/get_account_info', (req, res) => {
+    res.status(200).json({
+        message: 'Successfully called Gclass/get_account_info'
+    });
+});
+
 app.get('/Gclass/get_user_profile', (req, res) => {
     res.status(200).json({
         message: 'Successfully called Gclass/get_user_profile'
     });
 });
+
+app.get('/Gclass/get_user_profile', (req, res) => {
+    res.status(200).json({
+        message: 'Successfully called Gclass/get_user_profile'
+    });
+});
+
+
 
 ////////////////////////////////////////////////////////////    Awards   /////////////////////////////////////////////
 
