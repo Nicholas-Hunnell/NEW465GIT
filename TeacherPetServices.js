@@ -1,13 +1,26 @@
 const express = require('express');
+const {MongoClient} = require("mongodb");
 const app = express();
 
 const port = 3000;
 const hostname = '127.0.0.1';
 
+//MongoDB Connection
+const uri = "mongodb+srv://admin:admin@cluster0.lv5o6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const client = new MongoClient(uri);
+
 //////////////////////////////////////////////   User Accounts   //////////////////////////////////////
 app.post('/user/create_user', (req, res) => {
+    const user ={
+        FirstName: req.body.FirstName,
+        LastName: req.body.LastName,
+        CollegeName: req.body.CollegeName,
+        Email: req.body.Email
+    };
+
+    const result = client.db("TeachersPet").collection("Users").insertOne(user);
     res.status(201).json({
-        message: 'Successfully called user/create_user'
+        message: 'Successfully called user/create_user\nFirstName '+user.FirstName
     });
 });
 

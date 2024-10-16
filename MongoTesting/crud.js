@@ -60,7 +60,7 @@ async function main() {
         */
 
         //READ EXAMPLES
-        /*
+        ///*
         await findOneListingByName(client, "Infinite Views");
 
         await findListingsWithMinimumBedroomsBathroomsAndMostRecentReviews(client, {
@@ -69,14 +69,14 @@ async function main() {
             maximumNumberOfResults: 5
         });
 
-        */
+        //*/
 
         //UPDATE EXAMPLES:
-        ///*
+        /*
         await findOneListingByName(client, "Infinite Views");
         await updateListingByName(client, "Infinite Views", { bedrooms: 6, beds: 8 });
         await findOneListingByName(client, "Infinite Views");
-        //*/
+        */
 
         await upsertListingByName(client, "Cozy Cottage", { name: "Cozy Cottage", bedrooms: 2, bathrooms: 1 });
 
