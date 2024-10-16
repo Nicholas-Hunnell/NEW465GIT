@@ -23,6 +23,7 @@ app.delete('/user/delete_user', (req, res) => {
     });
 });
 
+
 app.get('/user/get_user_by_ID', (req, res) => {
     res.status(200).json({
         message: 'Successfully called user/get_user_by_ID'
@@ -93,23 +94,24 @@ app.get('/Gclass/get_grades', (req, res) => {
     });
 });
 
+app.get('/Gclass/get_account_info', (req, res) => {
+    res.status(200).json({
+        message: 'Successfully called Gclass/get_account_info'
+    });
+});
+
 app.get('/Gclass/get_user_profile', (req, res) => {
     res.status(200).json({
         message: 'Successfully called Gclass/get_user_profile'
     });
 });
 
-app.get('/Gclass/get_assignment_grade', (req, res)=> {
-    res.status(200).json( {
-        message: 'Successfully called Gclass/get_assignment_grade'
+app.get('/Gclass/get_user_profile', (req, res) => {
+    res.status(200).json({
+        message: 'Successfully called Gclass/get_user_profile'
     });
 });
 
-app.get('/Gclass/get_all_courses', (req, res) => {
-    res.status(200).json({
-        message: 'Successfully called Gclass/get_all_courses'
-    });
-});
 
 
 ////////////////////////////////////////////////////////////    Awards   /////////////////////////////////////////////
@@ -163,4 +165,6 @@ app.post('/GradeHelp/post_suggested_help', (req,res) =>{
 app.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}/`);
 });
+
+
 
