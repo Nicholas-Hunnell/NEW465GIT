@@ -10,7 +10,10 @@ const uri = "mongodb+srv://admin:admin@cluster0.lv5o6.mongodb.net/?retryWrites=t
 const client = new MongoClient(uri);
 
 //////////////////////////////////////////////   User Accounts   //////////////////////////////////////
+app.use(express.json());
+
 app.post('/user/create_user', (req, res) => {
+
     const user ={
         FirstName: req.body.FirstName,
         LastName: req.body.LastName,
@@ -31,8 +34,10 @@ app.post('/user/modify_user', (req, res) =>{
 });
 
 app.delete('/user/delete_user', (req, res) => {
+    const result = client.db("TeachersPet").collection("Users").deleteOne({"Email": req.body.Email});
+
     res.status(200).json({
-        message: 'Successfully called user/delete_user'
+        message: 'Successfully deleted user '+req.body.Email
     });
 });
 
