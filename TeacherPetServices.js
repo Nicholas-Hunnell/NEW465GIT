@@ -12,19 +12,28 @@ const client = new MongoClient(uri);
 //////////////////////////////////////////////   User Accounts   //////////////////////////////////////
 app.use(express.json());
 
-app.post('/user/create_user', (req, res) => {
+app.post('/user/create_user', async (req, res) => {
 
-    const user ={
-        FirstName: req.body.FirstName,
-        LastName: req.body.LastName,
-        CollegeName: req.body.CollegeName,
-        Email: req.body.Email
-    };
+    //check if the email is already in use
+    const emailTaken = await client.db("TeachersPet").collection("Users").findOne({Email: req.body.Email})
 
-    const result = client.db("TeachersPet").collection("Users").insertOne(user);
-    res.status(201).json({
-        message: 'Successfully called user/create_user\nFirstName '+user.FirstName
-    });
+    if (emailTaken) {
+        res.status(201).json({
+            message: 'Error: email ' + req.body.Email + " is already in use."
+        });
+    } else {
+        const user = {
+            FirstName: req.body.FirstName,
+            LastName: req.body.LastName,
+            CollegeName: req.body.CollegeName,
+            Email: req.body.Email
+        };
+
+        const result = client.db("TeachersPet").collection("Users").insertOne(user);
+        res.status(201).json({
+            message: 'Successfully called user/create_user\nFirstName ' + user.FirstName
+        });
+    }
 });
 
 app.post('/user/modify_user', (req, res) =>{
@@ -33,22 +42,71 @@ app.post('/user/modify_user', (req, res) =>{
     });
 });
 
-app.delete('/user/delete_user', (req, res) => {
-    const result = client.db("TeachersPet").collection("Users").deleteOne({"Email": req.body.Email});
+app.delete('/user/delete_user', async (req, res) => {
+    const result = await client.db("TeachersPet").collection("Users").findOne({"Email": req.body.Email});
 
-    res.status(200).json({
-        message: 'Successfully deleted user '+req.body.Email
-    });
+    if(result) {
+        const result = await client.db("TeachersPet").collection("Users").deleteOne({"Email": req.body.Email});
+        res.status(200).json({
+            message: 'Successfully deleted user ' + req.body.Email
+        });
+    }
+    else{
+        res.status(200).json({
+            message: 'Error: No user with that email'
+        });
+    }
 });
 
 
-app.get('/user/get_user_by_ID', (req, res) => {
-    res.status(200).json({
-        message: 'Successfully called user/get_user_by_ID'
-    });
+app.get('/user/get_user_by_ID', async (req, res) => {
+    const result = await client.db("TeachersPet").collection("Users").find({_id: req.body.id});
+
+    if(result.Email != null) {
+        const resultArr = await result.toArray();
+        console.log(resultArr);
+        res.status(200).json({
+            message: 'User info: ' + JSON.stringify(resultArr[0]),
+            user: resultArr[0]
+        });
+    }
+    else{
+        res.status(200).json({
+            message: 'Error: no user with that ID'
+        });
+    }
 });
 
+app.get('/user/get_user_by_email', async (req, res) => {
+    const result = await client.db("TeachersPet").collection("Users").find({"Email": req.body.Email});
+    const resultArr = await result.toArray();
 
+    if(resultArr[0] != null){
+        res.status(200).json({
+            message: 'User info: ' + JSON.stringify(resultArr[0]),
+            user: resultArr[0]
+        });
+    }
+    else{
+        res.status(200).json({
+            message: 'Error: no user with that email'
+        });
+    }
+});
+
+app.get('/user/get_id_by_email', async (req, res) => {
+    const result = await client.db("TeachersPet").collection("Users").findOne({"Email": req.body.Email});
+
+    if (result.Email == null) {
+        res.status(200).json({
+            message: 'ERROR: No user with that email.'
+        });
+    } else {
+        res.status(200).json({
+            message: 'id: ' + result._id
+        });
+    }
+});
 
 
 ////////////////////////////////////////////   CANVAS   ///////////////////////////////////////////
