@@ -108,6 +108,32 @@ app.get('/user/get_id_by_email', async (req, res) => {
     }
 });
 
+app.post('/user/update_last_login', async (req, res) => {
+    const result = await client.db("TeachersPet").collection("LastLogin").updateOne(
+        {
+            UserID: req.body.UserId
+        },
+        {
+            $set:{
+                TimeofLast: new Date()
+            }
+        },
+        {$upsert: true}
+    );
+
+    console.log(result);
+    if(result.upsertedCount == 0){
+        returnMessage = "ERROR: incorrect user id, none match the given userID"
+    }
+    else{
+        returnMessage: 'Successfully updated last login.'
+    }
+
+    res.status(200).json({
+            message: returnMessage
+    })
+})
+
 
 ////////////////////////////////////////////   CANVAS   ///////////////////////////////////////////
 
