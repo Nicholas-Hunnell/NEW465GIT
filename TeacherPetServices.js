@@ -143,7 +143,7 @@ app.get('/canvas/get_all_class_names', (req, res) => {
     const options = {
         hostname: canvasHost,
         port: 443,
-        path: '/api/v1/courses',
+        path: '/api/v1/users/self/favorites/courses?enrollment_state=active',
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -197,11 +197,118 @@ app.get('/canvas/get_all_class_names', (req, res) => {
     apiRequest.end(); // Close the request properly
 });
 
+
 app.get('/canvas/get_grades', (req, res) => {
-    res.status(200).json({
-        message: 'Successfully called canvas/get_grades'
+
+    const options = {
+        hostname: canvasHost,
+        port: 443,
+        path: '/api/v1/users/self/favorites/courses',  // Using favorites to fetch courses
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json+canvas-string-ids'
+        }
+    };
+
+    const apiRequest = https.request(options, apiResponse => {
+        let data = '';
+
+        apiResponse.on('data', chunk => {
+            data += chunk;
+        });
+
+        apiResponse.on('end', () => {
+            if (apiResponse.statusCode === 200) {
+                const courses = JSON.parse(data);
+
+                if (Array.isArray(courses)) {
+                    res.writeHead(200, {'Content-Type': 'text/html'});
+                    res.write('<html><body><p>Student Grades:</p><ul>');
+
+                    // Array to hold all the promises for fetching enrollments
+                    const enrollmentPromises = courses.map(course => {
+                        return new Promise((resolve, reject) => {
+                            const enrollmentOptions = {
+                                hostname: canvasHost,
+                                port: 443,
+                                path: `/api/v1/courses/${course.id}/enrollments?user_id=self`,  // Enrollment per favorite course
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Accept': 'application/json+canvas-string-ids'
+                                }
+                            };
+
+                            const enrollmentRequest = https.request(enrollmentOptions, enrollmentResponse => {
+                                let enrollmentData = '';
+
+                                enrollmentResponse.on('data', chunk => {
+                                    enrollmentData += chunk;
+                                });
+
+                                enrollmentResponse.on('end', () => {
+                                    const enrollments = JSON.parse(enrollmentData);
+
+                                    // Loop through enrollments and extract the grade
+                                    let gradeInfo = `<li>Course ID: ${course.name}`;
+                                    enrollments.forEach(enrollment => {
+                                        if (enrollment.grades && enrollment.grades.current_grade) {
+                                            gradeInfo += `, Grade: ${enrollment.grades.current_grade}`;
+                                        } else {
+                                            gradeInfo += ' has no grade available';
+                                        }
+                                    });
+                                    gradeInfo += '</li>';
+                                    resolve(gradeInfo);
+                                });
+                            });
+
+                            enrollmentRequest.on('error', error => {
+                                reject(`Error retrieving enrollments for course: ${error.message}`);
+                            });
+
+                            enrollmentRequest.end();
+                        });
+                    });
+
+                    // Wait for all enrollment promises to resolve
+                    Promise.all(enrollmentPromises)
+                        .then(results => {
+                            results.forEach(result => res.write(result));  // Write each grade info to the response
+                            res.write('</ul></body></html>');
+                            res.end();
+                        })
+                        .catch(error => {
+                            res.status(500).json({
+                                message: 'Error retrieving enrollments',
+                                error: error
+                            });
+                        });
+                } else {
+                    res.write('<p>No favorite courses found</p>');
+                    res.end();
+                }
+            } else {
+                res.status(apiResponse.statusCode).json({
+                    message: 'Error retrieving favorite courses',
+                    status: apiResponse.statusCode,
+                    error: data
+                });
+            }
+        });
     });
+
+    apiRequest.on('error', error => {
+        res.status(500).json({
+            message: 'Error connecting to Canvas API',
+            error: error.message
+        });
+    });
+
+    apiRequest.end(); // Close the request properly
 });
+
 
 app.get('/canvas/get_canvas_account_info', (req, res) => {
     res.status(200).json({
