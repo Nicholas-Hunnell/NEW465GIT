@@ -11,13 +11,14 @@ const client = new MongoClient(uri);
 
 //Token for Ben Harmon to serve as a temporary test for API calls
 //collin token: 1050~RHcrK4Aw3rNBDf86AYeAJPwXXyunUKtFcVn7LVZN9t4AxDN7DH4hwPBUTFK39QBx
-const token = '1050~RHcrK4Aw3rNBDf86AYeAJPwXXyunUKtFcVn7LVZN9t4AxDN7DH4hwPBUTFK39QBx';
+const token = '1050~EZhEtyeWBEA6kWeunCVDv3VZmCEn8PDt93rQKafFNC3QWPFEExeWkmCTaC9xM3kT';
 const canvasHost = 'psu.instructure.com';
 const https = require('https');
 
 //////////////////////////////////////////////   User Accounts   //////////////////////////////////////
 app.use(express.json({limit: '10kb'}));
-
+const userid = '7097162';
+const courseid = '2344966';
 app.get('/', (req, res) => {
     res.writeHead(200, {'Content-Type': 'text/html'})
     res.write(
@@ -28,6 +29,21 @@ app.get('/', (req, res) => {
             '<a href="http://127.0.0.1:3000/canvas/get_all_class_names">'+
             '\nget_all_class_names'+
             '</a>'+
+        '<\p>'+
+        '<p>'+
+        '<a href="http://127.0.0.1:3000/canvas/get_canvas_account_info">'+
+        '\nget_canvas_account_info'+
+        '</a>'+
+        '<\p>'+
+        '<p>'+
+        '<a href="http://127.0.0.1:3000/canvas/get_assignments/' + userid + '/' + courseid + '">'+
+        '\nget_canvas_quizzes'+
+        '</a>'+
+        '<\p>'+
+        '<p>'+
+        '<a href="http://127.0.0.1:3000/canvas/get_assignments/' + userid + '/' + courseid + '/grades">'+
+        '\nget_canvas_quizzes_with_grades'+
+        '</a>'+
         '<\p>'+
             '</body>' +
         '</html>'
@@ -214,19 +230,307 @@ app.get('/canvas/get_all_class_names', (req, res) => {
 
     apiRequest.end(); // Close the request properly
 });
+//QUIZES
+app.get('/canvas/get_assignments/:userId/:courseId', (req, res) => {
+    const userId = req.params.userId;
+    const courseId = req.params.courseId;
+
+    const options = {
+        hostname: canvasHost,
+        port: 443,
+        path: `/api/v1/users/${userId}/courses/${courseId}/assignments`,
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json+canvas-string-ids'
+        }
+    };
+
+    const apiRequest = https.request(options, apiResponse => {
+        let data = '';
+
+        apiResponse.on('data', chunk => {
+            data += chunk;
+        });
+
+        apiResponse.on('end', () => {
+            if (apiResponse.statusCode === 200) {
+                const assignments = JSON.parse(data);
+
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.write('<html><body><p>Assignments:</p><ul>');
+
+                assignments.forEach(assignment => {
+                    res.write(`<li>Assignment ID: ${assignment.id}, Name: ${assignment.name}, Due Date: ${assignment.due_at || 'Not set'}</li>`);
+                });
+
+                res.write('</ul></body></html>');
+                res.end();
+            } else {
+                res.status(apiResponse.statusCode).json({
+                    message: 'Error retrieving assignments',
+                    status: apiResponse.statusCode,
+                    error: data
+                });
+            }
+        });
+    });
+
+    apiRequest.on('error', error => {
+        res.status(500).json({
+            message: 'Error connecting to Canvas API',
+            error: error.message
+        });
+    });
+
+    apiRequest.end(); // Close the request properly
+});
+//QUIZESS AND GRADES
+app.get('/canvas/get_assignments/:userId/:courseId/grades', (req, res) => {
+    const userId = req.params.userId;
+    const courseId = req.params.courseId;
+
+    const options = {
+        hostname: canvasHost,
+        port: 443,
+        path: `/api/v1/users/${userId}/courses/${courseId}/assignments?include[]=submission&include[]=grading`,
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json+canvas-string-ids'
+        }
+    };
+
+    const apiRequest = https.request(options, apiResponse => {
+        let data = '';
+
+        apiResponse.on('data', chunk => {
+            data += chunk;
+        });
+
+        apiResponse.on('end', () => {
+            if (apiResponse.statusCode === 200) {
+                const assignments = JSON.parse(data);
+
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.write('<html><body><p>Assignments with Letter Grades:</p><ul>');
+
+                assignments.forEach(assignment => {
+                    const submission = assignment.submission;
+                    const totalPoints = assignment.points_possible || 0;
+                    const score = submission ? submission.score : 0;
+
+                    let letterGrade = 'Not graded';
+                    if (totalPoints > 0 && submission) {
+                        const percentage = (score / totalPoints) * 100;
+                        letterGrade = getLetterGrade(percentage);
+                    }
+
+                    res.write(`<li>Assignment ID: ${assignment.id}, Name: ${assignment.name}, Due Date: ${assignment.due_at || 'Not set'}, Letter Grade: ${letterGrade}</li>`);
+                });
+
+                res.write('</ul></body></html>');
+                res.end();
+            } else {
+                res.status(apiResponse.statusCode).json({
+                    message: 'Error retrieving assignments',
+                    status: apiResponse.statusCode,
+                    error: data
+                });
+            }
+        });
+    });
+
+    apiRequest.on('error', error => {
+        res.status(500).json({
+            message: 'Error connecting to Canvas API',
+            error: error.message
+        });
+    });
+
+    apiRequest.end(); // Close the request properly
+});
+
+// Helper function to convert percentage to letter grade
+function getLetterGrade(percentage) {
+    if (percentage >= 90) {
+        return 'A';
+    } else if (percentage >= 80) {
+        return 'B';
+    } else if (percentage >= 70) {
+        return 'C';
+    } else if (percentage >= 60) {
+        return 'D';
+    } else {
+        return 'F';
+    }
+}
+//NOT ALLOWED USER DOES NOT HAVE PERMISSIONS
+const { format, subMonths } = require('date-fns');
+app.get('/canvas/get_grade_changes/:studentId', (req, res) => {
+    const studentId = req.params.studentId;
+
+    // Calculate start time (2 months ago) and end time (now)
+    const endTime = new Date();
+    const startTime = subMonths(endTime, 2);
+
+    const options = {
+        hostname: canvasHost,
+        port: 443,
+        path: `/api/v1/audit/grade_change/students/${studentId}?start_time=${format(startTime, "yyyy-MM-dd'T'HH:mm:ss'Z'")}&end_time=${format(endTime, "yyyy-MM-dd'T'HH:mm:ss'Z'")}`,
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+        }
+    };
+
+    const apiRequest = https.request(options, apiResponse => {
+        let data = '';
+
+        apiResponse.on('data', chunk => {
+            data += chunk;
+        });
+
+        apiResponse.on('end', () => {
+            if (apiResponse.statusCode === 200) {
+                const gradeChanges = JSON.parse(data);
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(gradeChanges));
+            } else {
+                res.status(apiResponse.statusCode).json({
+                    message: 'Error retrieving grade changes',
+                    status: apiResponse.statusCode,
+                    error: data
+                });
+            }
+        });
+    });
+
+    apiRequest.on('error', error => {
+        res.status(500).json({
+            message: 'Error connecting to Canvas API',
+            error: error.message
+        });
+    });
+
+    apiRequest.end(); // Close the request properly
+});
+
 
 app.get('/canvas/get_grades', (req, res) => {
-    res.status(200).json({
-        message: 'Successfully called canvas/get_grades'
-    });
-});
 
+    const options = {
+        hostname: canvasHost,
+        port: 443,
+        path: '/api/v1/accounts/self',
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json+canvas-string-ids'
+        }
+    };
+
+    const apiRequest = https.request(options, apiResponse => {
+        let data = '';
+
+        apiResponse.on('data', chunk => {
+            data += chunk;
+        });
+
+        apiResponse.on('end', () => {
+            if (apiResponse.statusCode === 200) {
+                const courses = JSON.parse(data);
+
+                if (Array.isArray(courses)) {
+                    res.writeHead(200, {'Content-Type': 'text/html'});
+                    res.write('<html><body><p>Student Account Info:</p><ul>');
+
+                    courses.forEach(course => {
+                        if (course.name) {
+                            res.write(`<li>${course.name}</li>`);
+                        } else {
+                            res.write(`<li>Course ID: ${course.id} has no name available.</li>`);
+                        }
+                    });
+
+                    res.write('</ul></body></html>');
+                    res.end();
+                }
+            } else {
+                res.status(apiResponse.statusCode).json({
+                    message: 'Error retrieving courses',
+                    status: apiResponse.statusCode,
+                    error: data
+                });
+            }
+        });
+    });
+
+    apiRequest.on('error', error => {
+        res.status(500).json({
+            message: 'Error connecting to Canvas API',
+            error: error.message
+        });
+    });
+
+    apiRequest.end(); // Close the request properly
+});
+//Gets Canvas Account info
 app.get('/canvas/get_canvas_account_info', (req, res) => {
-    res.status(200).json({
-        message: 'Successfully called canvas/get_canvas_account_info'
-    });
-});
+    const options = {
+        hostname: canvasHost,
+        port: 443,
+        path: '/api/v1/users/self',
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json+canvas-string-ids'
+        }
+    };
 
+    const apiRequest = https.request(options, apiResponse => {
+        let data = '';
+
+        apiResponse.on('data', chunk => {
+            data += chunk;
+        });
+
+        apiResponse.on('end', () => {
+            if (apiResponse.statusCode === 200) {
+                const userInfo = JSON.parse(data);
+
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.write('<html><body><p>User Account Info:</p><ul>');
+
+                // Display user information
+                res.write(`<li>User ID: ${userInfo.id}</li>`);
+                res.write(`<li>Name: ${userInfo.name}</li>`);
+                res.write(`<li>Login ID: ${userInfo.login_id}</li>`);
+                res.write(`<li>Created At: ${userInfo.created_at}</li>`);
+
+                res.write('</ul></body></html>');
+                res.end();
+            } else {
+                res.status(apiResponse.statusCode).json({
+                    message: 'Error retrieving user info',
+                    status: apiResponse.statusCode,
+                    error: data
+                });
+            }
+        });
+    });
+
+    apiRequest.on('error', error => {
+        res.status(500).json({
+            message: 'Error connecting to Canvas API',
+            error: error.message
+        });
+    });
+
+    apiRequest.end(); // Close the request properly
+});
 app.get('/canvas/get_single_class', (req, res) => {
     res.status(200).json({
         message: 'Successfully called canvas/get_single_class'
@@ -322,7 +626,7 @@ app.get('/GradeHelp/get_suggested_help_websites', (req, res) => {
 
 app.get('/GradeHelp/get_suggested_help_tutoring', (req, res) => {
     res.status(200).json({
-        message: 'Successfully called GradeHelp/get_suggested_help_tutoring'
+        message: 'Successfully called GradeHelp/get_suggested_help_websites'
     });
 });
 
@@ -332,7 +636,13 @@ app.post('/GradeHelp/post_suggested_help', (req, res) => {
     });
 });
 
+app.post('/Home', (req, res) => {
+    res.status(201).json({
+        message: 'Teachers Pet'
+    });
+});
 // Start the Express server
 app.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}/`);
 });
+
