@@ -10,12 +10,30 @@ const uri = "mongodb+srv://admin:admin@cluster0.lv5o6.mongodb.net/?retryWrites=t
 const client = new MongoClient(uri);
 
 //Token for Ben Harmon to serve as a temporary test for API calls
-const token = '1050~EZhEtyeWBEA6kWeunCVDv3VZmCEn8PDt93rQKafFNC3QWPFEExeWkmCTaC9xM3kT';
+//collin token: 1050~RHcrK4Aw3rNBDf86AYeAJPwXXyunUKtFcVn7LVZN9t4AxDN7DH4hwPBUTFK39QBx
+const token = '1050~RHcrK4Aw3rNBDf86AYeAJPwXXyunUKtFcVn7LVZN9t4AxDN7DH4hwPBUTFK39QBx';
 const canvasHost = 'psu.instructure.com';
 const https = require('https');
 
 //////////////////////////////////////////////   User Accounts   //////////////////////////////////////
 app.use(express.json({limit: '10kb'}));
+
+app.get('/', (req, res) => {
+    res.writeHead(200, {'Content-Type': 'text/html'})
+    res.write(
+        '<html>' +
+        '<body>' +
+        'Yipee, you\'re home!\n' +
+        '<p>'+
+            '<a href="http://127.0.0.1:3000/canvas/get_all_class_names">'+
+            '\nget_all_class_names'+
+            '</a>'+
+        '<\p>'+
+            '</body>' +
+        '</html>'
+    );
+    res.end();
+});
 
 app.post('/user/create_user', async (req, res) => {
 
@@ -226,6 +244,14 @@ app.get('/canvas/get_assignment_grade', (req, res) => {
         message: 'Successfully called canvas/get_assignment_grade'
     });
 });
+
+app.post('/canvas/auth/getToken', (req, res) => {
+    res.status(200).json({
+        message: 'Successfully called canvas/getToken'
+    });
+})
+
+
 
 
 ////////////////////////////////////////////  ////////////////////////////////////////////
