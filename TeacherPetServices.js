@@ -55,6 +55,7 @@ app.get('/', (req, res) => {
         '<a href="http://127.0.0.1:3000/canvas/get_all_class_names">'+
         '\nget_all_class_names'+
         '</a>'+
+        '</p>'+
         '<a href="http://127.0.0.1:3000/Gclass/get_courses">'+
         '\nGclass_get_courses'+
         '</a>'+
