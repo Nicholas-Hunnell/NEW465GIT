@@ -11,6 +11,7 @@ const client = new MongoClient(uri);
 
 //Token for Ben Harmon to serve as a temporary test for API calls
 //collin token: 1050~RHcrK4Aw3rNBDf86AYeAJPwXXyunUKtFcVn7LVZN9t4AxDN7DH4hwPBUTFK39QBx
+const gtoken = 'ya29.a0AeDClZDEh7xcBKO_A5YW1C4IxQ6B_gCrEq0LYyz4beBwPyhpdm5vCJHu3h2wVaUlIgkQNUuEhr1dDgRLXFISL_p68IneGSKkuzXmEGWln3P7NwiEUB8PyUPQZXdHJGji0YQwqmgGIq9ECA1owr3VpUCHS4IiW6LUoO20L8tzaCgYKAVQSARESFQHGX2MiMHAjd17tYOMxykOBNF5ghQ0175';
 const token = '1050~EZhEtyeWBEA6kWeunCVDv3VZmCEn8PDt93rQKafFNC3QWPFEExeWkmCTaC9xM3kT';
 const canvasHost = 'psu.instructure.com';
 const https = require('https');
@@ -53,6 +54,9 @@ app.get('/', (req, res) => {
         '<p>'+
         '<a href="http://127.0.0.1:3000/canvas/get_all_class_names">'+
         '\nget_all_class_names'+
+        '</a>'+
+        '<a href="http://127.0.0.1:3000/Gclass/get_courses">'+
+        '\nGclass_get_courses'+
         '</a>'+
         '<\p>'+
         '</body>' +
@@ -628,9 +632,61 @@ app.post('/canvas/auth/getToken', (req, res) => {
 
 ///////////////////////////////////////////////////////    Google classroom    //////////////////////////////////////////////////
 app.get('/Gclass/get_courses', (req, res) => {
-    res.status(200).json({
-        message: 'Successfully called Gclass/get_courses'
+    const options = {
+        hostname: 'classroom.googleapis.com',
+        port: 443,
+        path: '/v1/courses',
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${gtoken}`
+        }
+    };
+
+    const apiRequest = https.request(options, apiResponse => {
+        let data = '';
+
+        apiResponse.on('data', chunk => {
+            data += chunk;
+        });
+
+        apiResponse.on('end', () => {
+            if (apiResponse.statusCode === 200) {
+
+                const courses = JSON.parse(data);
+
+                if (Array.isArray(courses.courses)) {
+                    res.writeHead(200, {'Content-Type': 'text/html'});
+                    res.write('<html><body><p>Student Courses:</p><ul>');
+
+                    courses.courses.forEach(course => {
+                        if (course.name) {
+                            res.write(`<li>${course.name}</li>`);
+                        } else {
+                            res.write(`<li>Course ID: ${course.id} has no name available.</li>`);
+                        }
+                    });
+
+                    res.write('</ul></body></html>');
+                    res.end();
+                }
+            } else {
+                res.status(apiResponse.statusCode).json({
+                    message: 'Error retrieving courses',
+                    status: apiResponse.statusCode,
+                    error: data
+                });
+            }
+        });
     });
+
+    apiRequest.on('error', error => {
+        res.status(500).json({
+            message: 'Error connecting to Google Classroom API',
+            error: error.message
+        });
+    });
+
+    apiRequest.end(); // Close the request properly
 });
 
 app.get('/Gclass/get_grades', (req, res) => {
