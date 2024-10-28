@@ -55,6 +55,16 @@ app.get('/', (req, res) => {
         '\nget_all_class_names'+
         '</a>'+
         '<\p>'+
+        '<p>'+
+        '<a href="http://127.0.0.1:3000/canvas/get_all_course_ids">'+
+        '\nget_all_course_ids'+
+        '</a>'+
+        '<\p>'+
+        '<p>'+
+        '<a href="http://127.0.0.1:3000/canvas/get_all_assignments_grades/:userId">'+
+        '\nget_all_assignments_and_grades'+
+        '</a>'+
+        '<\p>'+
         '</body>' +
         '</html>'
     );
@@ -241,6 +251,64 @@ app.get('/canvas/get_all_class_names', (req, res) => {
     apiRequest.end(); // Close the request properly
 });
 
+app.get('/canvas/get_all_course_ids', (req, res) => {
+
+    const options = {
+        hostname: canvasHost,
+        port: 443,
+        path: '/api/v1/users/self/favorites/courses?enrollment_state=active',
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json+canvas-string-ids'
+        }
+    };
+
+    const apiRequest = https.request(options, apiResponse => {
+        let data = '';
+
+        apiResponse.on('data', chunk => {
+            data += chunk;
+        });
+
+        apiResponse.on('end', () => {
+            if (apiResponse.statusCode === 200) {
+                const courses = JSON.parse(data);
+
+                if (Array.isArray(courses)) {
+                    res.writeHead(200, {'Content-Type': 'text/html'});
+                    res.write('<html><body><p>Student Courses:</p><ul>');
+
+                    courses.forEach(course => {
+                        if (course.name) {
+                            res.write(`<li>${course.id}</li>`);
+                        } else {
+                            res.write(`<li>Course ID: ${course.id} has no name available.</li>`);
+                        }
+                    });
+
+                    res.write('</ul></body></html>');
+                    res.end();
+                }
+            } else {
+                res.status(apiResponse.statusCode).json({
+                    message: 'Error retrieving courses',
+                    status: apiResponse.statusCode,
+                    error: data
+                });
+            }
+        });
+    });
+
+    apiRequest.on('error', error => {
+        res.status(500).json({
+            message: 'Error connecting to Canvas API',
+            error: error.message
+        });
+    });
+
+    apiRequest.end(); // Close the request properly
+});
 
 app.get('/canvas/get_grades', (req, res) => {
 
@@ -619,8 +687,7 @@ app.post('/canvas/auth/getToken', (req, res) => {
         message: 'Successfully called canvas/getToken'
     });
 })
-
-
+//ATEMPT AT ThE MEGA LOOP
 
 
 ////////////////////////////////////////////  ////////////////////////////////////////////
