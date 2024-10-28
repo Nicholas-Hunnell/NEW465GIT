@@ -16,7 +16,7 @@ const collectionName = "tokens";
 let db;
 
 // Google OAuth2 settings
-const clientId = "719533638212-nsi6gd0rgcpeb8opiq8emoqieq4bdh85.apps.googleusercontent.com"; // Set this in a .env file
+const clientId = "719533638212-nsi6gd0rgcpeb8opiq8emoqieq4bdh85.apps.googleusercontent.com";
 const clientSecret = "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"; // Set this in a .env file
 const redirectUri = "http://localhost:3000/auth/google/callback"; // OAuth callback
 
