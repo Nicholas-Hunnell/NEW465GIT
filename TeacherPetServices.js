@@ -70,6 +70,11 @@ app.get('/', (req, res) => {
         '\nget_all_assignments_and_grades'+
         '</a>'+
         '<\p>'+
+        '<p>'+
+        '<a href="http://127.0.0.1:3000/Gclass/login">'+
+        '\nAuthenticate Google Account'+
+        '</a>'+
+        '<\p>'+
         '</body>' +
         '</html>'
     );
@@ -563,6 +568,7 @@ function getLetterGrade(percentage) {
 }
 //NOT ALLOWED USER DOES NOT HAVE PERMISSIONS
 const { format, subMonths } = require('date-fns');
+const pm2 = require("pm2");
 app.get('/canvas/get_grade_changes/:studentId', (req, res) => {
     const studentId = req.params.studentId;
 
@@ -774,6 +780,67 @@ app.get('/Gclass/get_user_profile', (req, res) => {
         message: 'Successfully called Gclass/get_user_profile'
     });
 });
+
+app.get('/Gclass/login', (req, res) => {
+    const pm2 = require('pm2');
+    pm2.connect((err) => {
+        if (err) {
+            console.error(err);
+            process.exit(2);
+        }
+
+        pm2.start({
+            script: 'googleClassroomAuth.js',
+            name: 'gClassAuth' // Give it a name
+        }, (err, apps) => {
+            if (err) {
+                console.error(err);
+                process.exit(2);
+            }
+
+            console.log('Second service started');
+        });
+    });
+
+    const options = {
+        hostname: '127.0.0.1',
+        port: 6000,
+        path: '/auth/google',
+        method: 'GET',
+        headers: {}
+    };
+
+    const apiRequest = https.request(options, apiResponse => {
+        let data = '';
+
+        apiResponse.on('data', chunk => {
+            data += chunk;
+        });
+
+        apiResponse.on('end', () => {
+            if (apiResponse.statusCode === 200) {
+
+                res.write('<html><body><p>Authorized!! Your token is in the database.</p></body></html>')
+                res.end();
+            } else {
+                res.status(apiResponse.statusCode).json({
+                    message: 'Error during google authentication process',
+                    status: apiResponse.statusCode,
+                    error: data
+                });
+            }
+        });
+    });
+
+    apiRequest.on('error', error => {
+        res.status(500).json({
+            message: 'Error connecting to Google Classroom API',
+            error: error.message
+        });
+    });
+
+    apiRequest.end(); // Close the request properly
+})
 
 
 ////////////////////////////////////////////////////////////    Awards   /////////////////////////////////////////////

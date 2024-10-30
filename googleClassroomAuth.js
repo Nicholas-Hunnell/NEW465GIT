@@ -7,7 +7,7 @@ require("dotenv").config();
 
 // Set up Express
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 6000;
 
 // MongoDB connection settings
 const mongoURI = "mongodb+srv://admin:admin@cluster0.lv5o6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
@@ -18,7 +18,7 @@ let db;
 // Google OAuth2 settings
 const clientId = "719533638212-nsi6gd0rgcpeb8opiq8emoqieq4bdh85.apps.googleusercontent.com";
 const clientSecret = "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"; // Set this in a .env file
-const redirectUri = "http://localhost:3000/auth/google/callback"; // OAuth callback
+const redirectUri = "http://localhost:3001/auth/google/callback"; // OAuth callback
 
 const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
 
