@@ -644,9 +644,9 @@ app.get('/canvas/get_canvas_account_info', (req, res) => {
                 // Display user information
                 res.write(`<li>User ID: ${userInfo.id}</li>`);
                 res.write(`<li>Name: ${userInfo.name}</li>`);
-                res.write(`<li>Login ID: ${userInfo.login_id}</li>`);
+                res.write(`<li>Avatar URL: ${userInfo.avatar_url}</li>`);
                 res.write(`<li>Created At: ${userInfo.created_at}</li>`);
-
+                console.log(userInfo)
                 res.write('</ul></body></html>');
                 res.end();
             } else {
