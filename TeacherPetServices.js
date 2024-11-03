@@ -1,6 +1,10 @@
 const express = require('express');
 const {MongoClient} = require("mongodb");
+const { OpenAI } = require("openai");
 const app = express();
+const openai = new OpenAI({
+    apiKey: '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', // Vitesh's OpenAI api key
+});
 
 const port = 3000;
 const hostname = '127.0.0.1';
@@ -55,7 +59,6 @@ app.get('/', (req, res) => {
         '<a href="http://127.0.0.1:3000/canvas/get_all_class_names">'+
         '\nget_all_class_names'+
         '</a>'+
-        '</p>'+
         '<a href="http://127.0.0.1:3000/Gclass/get_courses">'+
         '\nGclass_get_courses'+
         '</a>'+
@@ -68,11 +71,6 @@ app.get('/', (req, res) => {
         '<p>'+
         '<a href="http://127.0.0.1:3000/canvas/get_all_assignments_grades/:userId">'+
         '\nget_all_assignments_and_grades'+
-        '</a>'+
-        '<\p>'+
-        '<p>'+
-        '<a href="http://127.0.0.1:3000/Gclass/login">'+
-        '\nAuthenticate Google Account'+
         '</a>'+
         '<\p>'+
         '</body>' +
@@ -568,7 +566,6 @@ function getLetterGrade(percentage) {
 }
 //NOT ALLOWED USER DOES NOT HAVE PERMISSIONS
 const { format, subMonths } = require('date-fns');
-const pm2 = require("pm2");
 app.get('/canvas/get_grade_changes/:studentId', (req, res) => {
     const studentId = req.params.studentId;
 
@@ -651,9 +648,9 @@ app.get('/canvas/get_canvas_account_info', (req, res) => {
                 // Display user information
                 res.write(`<li>User ID: ${userInfo.id}</li>`);
                 res.write(`<li>Name: ${userInfo.name}</li>`);
-                res.write(`<li>Avatar URL: ${userInfo.avatar_url}</li>`);
+                res.write(`<li>Login ID: ${userInfo.login_id}</li>`);
                 res.write(`<li>Created At: ${userInfo.created_at}</li>`);
-                console.log(userInfo)
+
                 res.write('</ul></body></html>');
                 res.end();
             } else {
@@ -781,67 +778,6 @@ app.get('/Gclass/get_user_profile', (req, res) => {
     });
 });
 
-app.get('/Gclass/login', (req, res) => {
-    const pm2 = require('pm2');
-    pm2.connect((err) => {
-        if (err) {
-            console.error(err);
-            process.exit(2);
-        }
-
-        pm2.start({
-            script: 'googleClassroomAuth.js',
-            name: 'gClassAuth' // Give it a name
-        }, (err, apps) => {
-            if (err) {
-                console.error(err);
-                process.exit(2);
-            }
-
-            console.log('Second service started');
-        });
-    });
-
-    const options = {
-        hostname: '127.0.0.1',
-        port: 6000,
-        path: '/auth/google',
-        method: 'GET',
-        headers: {}
-    };
-
-    const apiRequest = https.request(options, apiResponse => {
-        let data = '';
-
-        apiResponse.on('data', chunk => {
-            data += chunk;
-        });
-
-        apiResponse.on('end', () => {
-            if (apiResponse.statusCode === 200) {
-
-                res.write('<html><body><p>Authorized!! Your token is in the database.</p></body></html>')
-                res.end();
-            } else {
-                res.status(apiResponse.statusCode).json({
-                    message: 'Error during google authentication process',
-                    status: apiResponse.statusCode,
-                    error: data
-                });
-            }
-        });
-    });
-
-    apiRequest.on('error', error => {
-        res.status(500).json({
-            message: 'Error connecting to Google Classroom API',
-            error: error.message
-        });
-    });
-
-    apiRequest.end(); // Close the request properly
-})
-
 
 ////////////////////////////////////////////////////////////    Awards   /////////////////////////////////////////////
 
@@ -903,13 +839,88 @@ app.listen(port, hostname, () => {
 });
 
 
+////////////////////////////////////////// OpenAI ///////////////////////////////////////////////////
 
 
+app.post('/chatgpt/get_study_tools', async (req, res) => {
+    // Extract course and assignment names from the request body
+    const { courseName, assignmentName } = req.body;
 
+    if (!courseName || !assignmentName) {
+        return res.status(400).json({
+            message: 'Error: Missing courseName or assignmentName in the request.'
+        });
+    }
 
+    // Define the prompt that will be sent to ChatGPT
+    const prompt = `Provide study tools and useful website links to help with the assignment titled "${assignmentName}" for the course "${courseName}". Include things like helpful videos, online calculators, and tips for understanding key concepts.`;
 
+    try {
+        // Create a completion using the OpenAI library
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4", // Use the desired model (gpt-3.5-turbo or gpt-4)
+            messages: [
+                { role: "system", content: "You are a helpful assistant." },
+                { role: "user", content: prompt }
+            ]
+        });
 
+        // Extract the response from the completion
+        const generatedText = completion.choices[0].message.content.trim();
 
+        // Return the generated study tools and links to the user
+        res.status(200).json({
+            message: 'Successfully generated study tools and resources.',
+            studyTools: generatedText
+        });
+    } catch (error) {
+        console.error('Error connecting to OpenAI API:', error.message);
+        res.status(500).json({
+            message: 'Error connecting to OpenAI API',
+            error: error.message
+        });
+    }
+});
+
+app.post('/chatgpt/get_college_services', async (req, res) => {
+    // Extract college name from the request body
+    const { collegeName } = req.body;
+
+    if (!collegeName) {
+        return res.status(400).json({
+            message: 'Error: Missing collegeName in the request.'
+        });
+    }
+
+    // Define the prompt that will be sent to ChatGPT
+    const prompt = `Provide information on tutoring services and health services available at ${collegeName}. Include details such as where students can access these services, contact information, and any notable programs or resources offered by the college.`;
+
+    try {
+        // Create a completion using the OpenAI library
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini", // Use the desired model (e.g., gpt-3.5-turbo or gpt-4)
+            messages: [
+                { role: "system", content: "You are a helpful assistant." },
+                { role: "user", content: prompt }
+            ]
+        });
+
+        // Extract the response from the completion
+        const generatedText = completion.choices[0].message.content.trim();
+
+        // Return the generated information about college services to the user
+        res.status(200).json({
+            message: 'Successfully generated information on college services.',
+            servicesInfo: generatedText
+        });
+    } catch (error) {
+        console.error('Error connecting to OpenAI API:', error.message);
+        res.status(500).json({
+            message: 'Error connecting to OpenAI API',
+            error: error.message
+        });
+    }
+});
 
 
 
